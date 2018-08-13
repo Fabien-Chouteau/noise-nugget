@@ -1,0 +1,4 @@
+(fp_lib_table
+  (lib (name footprints)(type KiCad)(uri /home/chouteau/src/github/wee-noise-maker/hardware/footprints.pretty)(options "")(descr ""))
+  (lib (name nugget_footprints)(type KiCad)(uri "$(KIPRJMOD)/nugget_footprints.pretty")(options "")(descr ""))
+)
