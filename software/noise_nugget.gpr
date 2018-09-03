@@ -1,0 +1,34 @@
+with "Ada_Drivers_Library/boards/stm32f407_discovery/stm32f407_discovery_full.gpr";
+
+project Noise_Nugget is
+
+  for Runtime ("Ada") use STM32F407_Discovery_Full'Runtime ("Ada");
+  for Target use "arm-eabi";
+  for Main use ("main.adb");
+  for Languages use ("Ada");
+
+  Src_Dirs := ("src/",
+               "ada-synth-lib/src");
+
+  for Source_Dirs use Src_Dirs;
+  for Object_Dir use "obj/";
+  for Create_Missing_Dirs use "True";
+
+  package Compiler renames STM32F407_Discovery_Full.Compiler;
+
+  package Linker is
+     for Default_Switches ("Ada") use
+       ("-Wl,--gc-sections",
+        "-Wl,--print-memory-usage");
+  end Linker;
+
+  package Ide is
+     for Gnat use "arm-eabi-gnat";
+     for Gnatlist use "arm-eabi-gnatls";
+     for Debugger_Command use "arm-eabi-gdb";
+     for Program_Host use "localhost:4242";
+     for Communication_Protocol use "remote";
+     for Connection_Tool use "st-util";
+  end Ide;
+
+end Noise_Nugget;
