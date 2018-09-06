@@ -19,51 +19,30 @@
 --                                                                           --
 -------------------------------------------------------------------------------
 
-with Ada.Real_Time; use Ada.Real_Time;
+with WNM;
+with Interfaces;         use Interfaces;
+with Utils;
 
-with WNM;               use WNM;
-with WNM.Master_Volume;
-with WNM.Buttons;
-with WNM.LED;
-with Sound_Generator;
+package Sound_Generator is
 
-with STM32_SVD.RCC; use STM32_SVD.RCC;
-with STM32_SVD.USB_OTG_FS; use STM32_SVD.USB_OTG_FS;
-with HAL; use HAL;
+   type Mono_Sample is new Integer_16 with Size => 16;
+   type Stereo_Sample is record
+      L, R : Mono_Sample;
+   end record with Pack, Size => 32;
 
-with STM32.Device; use STM32.Device;
-with STM32.GPIO; use STM32.GPIO;
---  with Ada.Text_IO; use Ada.Text_IO;
+   type Mono_Buffer is array (1 .. WNM.Samples_Per_Buffer) of Mono_Sample
+     with Pack, Size => WNM.Mono_Buffer_Size_In_Bytes * 8;
 
-procedure Main is
+   type Stereo_Buffer is array (1 .. WNM.Samples_Per_Buffer) of Stereo_Sample
+     with Pack, Size => WNM.Stereo_Buffer_Size_In_Bytes * 8;
 
-   Fx_On : Boolean := False;
-   Wait_Release : Boolean := False;
-begin
-   Sound_Generator.Off;
-   WNM.Master_Volume.Set (100);
-   loop
-      WNM.Buttons.Scan;
+   procedure Fill (Stereo_Input  :     Stereo_Buffer;
+                   Stereo_Output : out Stereo_Buffer);
 
-      if Wait_Release then
+   procedure On;
+   procedure Off;
 
-         if not WNM.Buttons.Is_Pressed (A) then
-            Wait_Release := False;
-         end if;
-      elsif WNM.Buttons.Is_Pressed (A) then
-         Fx_On := not Fx_On;
-         Wait_Release := True;
-      end if;
+   function Sample_To_Int16 is new Utils.Sample_To_Int (Mono_Sample);
+   function Int16_To_Sample is new Utils.Int_To_Sample (Mono_Sample);
 
-      if Fx_On then
-         Sound_Generator.On;
-         WNM.LED.Turn_On;
-      else
-         Sound_Generator.Off;
-         WNM.LED.Turn_Off;
-      end if;
-
-      WNM.Master_Volume.Update;
-      delay until Clock + Milliseconds (100);
-   end loop;
-end Main;
+end Sound_Generator;

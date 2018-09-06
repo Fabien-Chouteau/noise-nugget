@@ -2,6 +2,14 @@ with "Ada_Drivers_Library/boards/stm32f407_discovery/stm32f407_discovery_full.gp
 
 project Noise_Nugget is
 
+  type Generator_Type is ("fx-flanger", "synth");
+
+  Generator : Generator_Type := External("GENERATOR_TYPE", "synth");
+
+  package Naming is
+    for Body ("Sound_Generator") use "sound_generator-" & Generator & ".adb";
+  end Naming;
+
   for Runtime ("Ada") use STM32F407_Discovery_Full'Runtime ("Ada");
   for Target use "arm-eabi";
   for Main use ("main.adb");

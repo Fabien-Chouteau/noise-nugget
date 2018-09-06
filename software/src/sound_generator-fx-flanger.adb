@@ -19,30 +19,86 @@
 --                                                                           --
 -------------------------------------------------------------------------------
 
-with WNM;
-with Interfaces;         use Interfaces;
+with HAL; use HAL;
 
-package Quick_Synth is
+package body Sound_Generator is
 
-   type Mono_Sample is new Integer_16 with Size => 16;
-   type Stereo_Sample is record
-      L, R : Mono_Sample;
-   end record with Pack, Size => 32;
+   type Buffer_Index is mod 256;
 
-   type Mono_Buffer is array (1 .. WNM.Samples_Per_Buffer) of Mono_Sample
-     with Pack, Size => WNM.Mono_Buffer_Size_In_Bytes * 8;
+   Buffers : array (Buffer_Index) of Stereo_Sample;
 
-   type Stereo_Buffer is array (1 .. WNM.Samples_Per_Buffer) of Stereo_Sample
-     with Pack, Size => WNM.Stereo_Buffer_Size_In_Bytes * 8;
+   Head : Buffer_Index := Buffer_Index'First;
+
+   FX_On : Boolean := False;
+
+   LFO : Buffer_Index := 0;
+   LFO_Going_Up : Boolean := True;
+   Frame_Cnt : UInt32 := 0;
+
+   ----------
+   -- Fill --
+   ----------
 
    procedure Fill (Stereo_Input  :     Stereo_Buffer;
-                   Stereo_Output : out Stereo_Buffer);
+                   Stereo_Output : out Stereo_Buffer)
+   is
 
-   procedure Note_Up;
 
-   procedure Note_Down;
+   begin
 
-   procedure Effects_On;
-   procedure Effects_Off;
+      if FX_On then
+         for Index in Stereo_Buffer'Range loop
 
-end Quick_Synth;
+            Buffers (Head) := Stereo_Input (Index);
+            Head := Head + 1;
+
+            Stereo_Output (Index).L := Stereo_Input (Index).L + Buffers (Head + LFO).L;
+            Stereo_Output (Index).R := Stereo_Input (Index).R + Buffers (Head + LFO).R;
+
+
+            --  Quick and dirty triangle LFO
+            if Frame_Cnt mod (44100 / UInt32 (Buffer_Index'Last)) = 0 then
+
+               if LFO_Going_Up then
+                  LFO := LFO + 1;
+                  if LFO = Buffer_Index'Last then
+                     LFO_Going_Up := False;
+                  end if;
+               else
+                  LFO := LFO - 1;
+                  if LFO = Buffer_Index'First then
+                     LFO_Going_Up := False;
+                  end if;
+
+               end if;
+
+            end if;
+            Frame_Cnt := Frame_Cnt + 1;
+
+         end loop;
+
+      else
+         Stereo_Output := Stereo_Input;
+      end if;
+
+   end Fill;
+
+   --------
+   -- On --
+   --------
+
+   procedure On is
+   begin
+      FX_On := True;
+   end On;
+
+   ---------
+   -- Off --
+   ---------
+
+   procedure Off is
+   begin
+      FX_On := False;
+   end Off;
+
+end Sound_Generator;

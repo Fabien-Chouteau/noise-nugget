@@ -35,13 +35,13 @@ with System;                       use System;
 
 with Ada.Synchronous_Task_Control;
 with Ada.Interrupts.Names;
-with Quick_Synth;
+with Sound_Generator;
 
 with WNM.I2C;
 
 package body WNM.Audio_DAC is
 
-   type Stereo_Buffer_Access is access all Quick_Synth.Stereo_Buffer;
+   type Stereo_Buffer_Access is access all Sound_Generator.Stereo_Buffer;
 
    Task_Start : Ada.Synchronous_Task_Control.Suspension_Object;
 
@@ -88,10 +88,10 @@ package body WNM.Audio_DAC is
 
    -- Buffers --
 
-   TX0 : constant Stereo_Buffer_Access := new Quick_Synth.Stereo_Buffer;
-   TX1 : constant Stereo_Buffer_Access := new Quick_Synth.Stereo_Buffer;
-   RX0 : constant Stereo_Buffer_Access := new Quick_Synth.Stereo_Buffer;
-   RX1 : constant Stereo_Buffer_Access := new Quick_Synth.Stereo_Buffer;
+   TX0 : constant Stereo_Buffer_Access := new Sound_Generator.Stereo_Buffer;
+   TX1 : constant Stereo_Buffer_Access := new Sound_Generator.Stereo_Buffer;
+   RX0 : constant Stereo_Buffer_Access := new Sound_Generator.Stereo_Buffer;
+   RX1 : constant Stereo_Buffer_Access := new Sound_Generator.Stereo_Buffer;
 
 --     ----------
 --     -- MCLK --
@@ -380,7 +380,7 @@ package body WNM.Audio_DAC is
             Unused_RX := RX1;
          end if;
 
-         Quick_Synth.Fill (Unused_RX.all, Unused_TX.all);
+         Sound_Generator.Fill (Unused_RX.all, Unused_TX.all);
       end loop;
    end I2S_Stream;
 
