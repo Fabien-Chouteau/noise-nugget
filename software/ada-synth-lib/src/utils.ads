@@ -11,7 +11,7 @@ package Utils is
    subtype Millisecond is Natural;
    type Scale is new Float range 0.0 .. 1.0;
 
-   type Scale_Degree_T is (A, A_Sh, B, C, C_Sh, D, D_Sh, E, F, F_Sh, G, G_Sh);
+   type Scale_Degree_T is (C, C_Sh, D, D_Sh, E, F, F_Sh, G, G_Sh, A, A_Sh, B);
    type Scale_Color_T is (Black, White);
 
    Degrees_Colors : array (Scale_Degree_T) of Scale_Color_T :=

@@ -19,88 +19,63 @@
 --                                                                           --
 -------------------------------------------------------------------------------
 
-with WNM;                        use WNM;
+with WNM;                  use WNM;
 
-with Command; use Command;
-with Effects; use Effects;
-with Waves; use Waves;
-with Utils; use Utils;
+with Effects;              use Effects;
+with Waves;                use Waves;
+with Utils;                use Utils;
 with Sound_Gen_Interfaces; use Sound_Gen_Interfaces;
-with BLIT; use BLIT;
+with Sequencer;            use Sequencer;
 
 package body Sound_Generator is
 
-   ----------------------------------------------------------------------------
-   BPM : constant := 200;
-   SNL : constant Sample_Period := 4000;
+   subtype Poly is Natural range 0 .. 4;
 
-   S1 : constant Sequencer_Note := ((C, 4), SNL);
-   S2 : constant Sequencer_Note := ((F, 4), SNL);
-   S3 : constant Sequencer_Note := ((D_Sh, 4), SNL);
-   S4 : constant Sequencer_Note := ((A_Sh, 4), SNL);
-   S5 : constant Sequencer_Note := ((G, 4), SNL);
-   S6 : constant Sequencer_Note := ((D_Sh, 4), SNL);
+   Synth_Sources : array (Poly) of aliased Fixed_Note;
+   Notes         : array (Poly) of Note_T;
+   Levels        : array (Poly) of Float := (others => 0.0);
+   Allocated     : array (Poly) of Boolean := (others => False);
+   Triggers_On   : array (Poly) of Boolean := (others => False);
+   Triggers_Off  : array (Poly) of Boolean := (others => False);
 
-   Synth_Seq : constant access Simple_Sequencer :=
-     Create_Sequencer
-       (8, BPM, 4,
-        Notes =>
-          (S1, S1, S1, S1, S1, S2, S2, S2,
-           S3, S3, S3, S3, S3, S4, S4, S4,
-           S1, S1, S1, S1, S1, S2, S2, S2,
-           S5, S5, S5, S5, S5, S6, S6, S6));
+   ADSR_Trig : array (Poly) of aliased Dummy_Note_Generator
+     := (others => (Buffer => (others => (No_Note, No_Signal))));
+   ADSRs : constant array (Poly) of not null access ADSR :=
+     (Create_ADSR (Attack  => 30, Decay   => 1000, Release => 100, Sustain => 0.1,
+                   Source  => ADSR_Trig (0)'Access),
+      Create_ADSR (Attack  => 30, Decay   => 1000, Release => 100, Sustain => 0.1,
+                   Source  => ADSR_Trig (1)'Access),
+      Create_ADSR (Attack  => 30, Decay   => 1000, Release => 100, Sustain => 0.1,
+                   Source  => ADSR_Trig (2)'Access),
+      Create_ADSR (Attack  => 30, Decay   => 1000, Release => 100, Sustain => 0.1,
+                   Source  => ADSR_Trig (3)'Access),
+      Create_ADSR (Attack  => 30, Decay   => 1000, Release => 100, Sustain => 0.1,
+                   Source  => ADSR_Trig (4)'Access));
 
-   Synth_Source : constant Note_Generator_Access :=
-     Note_Generator_Access (Synth_Seq);
+   function Create_Voice (Note_Source : access Fixed_Note;
+                          Env         : access ADSR)
+                          return Generator_Access;
+   function Create_Voice (Note_Source : access Fixed_Note;
+                          Env         : access ADSR)
+                          return Generator_Access
+   is (Create_Mixer (Sources => (1 => (Gen => Create_Saw (Create_Pitch_Gen (Rel_Pitch => 0, Source => Note_Source)),
+                                       Level => 1.0)),
+                     Env => Env
+                    )
+      );
 
-   Main : constant access Disto :=
-     --  We distort the output signal of the synthetizer with a soft clipper
-     Create_Dist
-       (Clip_Level => 1.00001,
-        Coeff      => 1.5,
-
-        --  The oscillators of the synth are fed to an LP filter
-        Source     => Create_LP
+   Mix : constant access Mixer :=
+     Create_Mixer
+       (Sources =>
           (
+             1 => (Create_Voice (Synth_Sources (0)'Access, ADSRs (0)), Level => 0.0)
+           , 2 => (Create_Voice (Synth_Sources (1)'Access, ADSRs (1)), Level => 0.0)
+           , 3 => (Create_Voice (Synth_Sources (2)'Access, ADSRs (2)), Level => 0.0)
+           , 4 => (Create_Voice (Synth_Sources (3)'Access, ADSRs (3)), Level => 0.0)
+           , 5 => (Create_Voice (Synth_Sources (4)'Access, ADSRs (4)), Level => 0.0)
+          )
+       );
 
-           --  We use an ADSR enveloppe to modulate the Cut frequency of the
-           --  filter. Using it as the modulator of a Fixed generator allows us
-           --  to have a cut frequency that varies between 1700 hz and 200 hz.
-           Cut_Freq =>
-             Fixed
-               (Freq      => 200.0,
-                Modulator => new Attenuator'
-                  (Level  => 1500.0,
-                   Source => Create_ADSR (10, 150, 200, 0.005, Synth_Source),
-                   others => <>)),
-
-           --  Q is the resonance of the filter, very high values will give a
-           --  resonant sound.
-           Q => 0.2,
-
-           --  This is the mixer, receiving the sound of 4 differently tuned
-           --  oscillators, 1 sine and 3 saws
-           Source =>
-             Create_Mixer
-               (Sources =>
-                    (4 => (Create_Sine
-                           (Create_Pitch_Gen
-                              (Rel_Pitch => -30, Source => Synth_Source)),
-                           Level => 0.6),
-                     3 => (BLIT.Create_Saw
-                           (Create_Pitch_Gen
-                              (Rel_Pitch => -24, Source => Synth_Source)),
-                           Level => 0.3),
-                     2 => (BLIT.Create_Saw
-                           (Create_Pitch_Gen
-                              (Rel_Pitch => -12, Source => Synth_Source)),
-                           Level => 0.3),
-                     1 => (BLIT.Create_Saw
-                           (Create_Pitch_Gen
-                              (Rel_Pitch => -17, Source => Synth_Source)),
-                           Level => 0.5)))));
-
-   ----------------------------------------------------------------------------
 
    ----------
    -- Fill --
@@ -112,34 +87,84 @@ package body Sound_Generator is
       pragma Unreferenced (Stereo_Input);
    begin
 
+      --  Update synths
+      for Index in Poly loop
+         if Triggers_On (Index) then
+            Triggers_On (Index) := False;
+            ADSR_Trig (Index).Buffer (0) := (Notes (Index), On);
+         elsif Triggers_Off (Index) then
+            Triggers_Off (Index) := False;
+            ADSR_Trig (Index).Buffer (0) := (Notes (Index), Off);
+         else
+            ADSR_Trig (Index).Buffer (0) := (Notes (Index), No_Signal);
+         end if;
+         Mix.Generators (Index).Level := Levels (Index);
+         Synth_Sources (Index).Set_Note (Notes (Index));
+      end loop;
+
       Next_Steps;
-      Main.Next_Samples;
+      Mix.Next_Samples;
 
       for I in B_Range_T'Range loop
-         Stereo_Output (Integer (I) + 1).L := Sample_To_Int16 (Main.Buffer (I));
-         Stereo_Output (Integer (I) + 1).R := Sample_To_Int16 (Main.Buffer (I));
+         Stereo_Output (Integer (I) + 1).L := Sample_To_Int16 (Mix.Buffer (I));
+         Stereo_Output (Integer (I) + 1).R := Sample_To_Int16 (Mix.Buffer (I));
       end loop;
 
       Sample_Nb := Sample_Nb + Generator_Buffer_Length;
 
    end Fill;
 
+   function To_Note (Data : UInt8) return Note_T
+   is ((case Data mod 12 is
+           when 0 => C,
+           when 1 => C_Sh,
+           when 2 => D,
+           when 3 => D_Sh,
+           when 4 => E,
+           when 5 => F,
+           when 6 => F_Sh,
+           when 7 => G,
+           when 8 => G_Sh,
+           when 9 => A,
+           when 10 => A_Sh,
+           when others => B),
+       Octave_T ((Integer (Data) / 12) - 1));
+
    --------
    -- On --
    --------
 
-   procedure On is
+   procedure On (Data : UInt8) is
    begin
-      null;
+      for Index in Poly loop
+         --  Find a free oscillator
+         if not Allocated (Index) and then ADSRs (Index).State = Off then
+            Allocated (Index) := True;
+            Notes (Index) := To_Note (Data);
+            Triggers_On (Index) := True;
+            Levels (Index) := 0.2;
+            return;
+         end if;
+      end loop;
    end On;
 
    ---------
    -- Off --
    ---------
 
-   procedure Off is
+   procedure Off (Data : UInt8) is
+      Note : constant Note_T := To_Note (Data);
    begin
-      null;
+      for Index in Poly loop
+         --  Find an oscillator playing this note
+         if Allocated (Index) and then Notes (Index) = Note then
+
+            Allocated (Index) := False;
+
+            --  Kill the oscilator
+            Triggers_Off (Index) := True;
+         end if;
+      end loop;
    end Off;
 
 end Sound_Generator;

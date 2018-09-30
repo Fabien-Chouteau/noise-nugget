@@ -22,6 +22,7 @@
 with WNM;
 with Interfaces;         use Interfaces;
 with Utils;
+with HAL;                use HAL;
 
 package Sound_Generator is
 
@@ -39,8 +40,8 @@ package Sound_Generator is
    procedure Fill (Stereo_Input  :     Stereo_Buffer;
                    Stereo_Output : out Stereo_Buffer);
 
-   procedure On;
-   procedure Off;
+   procedure On (Data : UInt8);
+   procedure Off (Data : UInt8);
 
    function Sample_To_Int16 is new Utils.Sample_To_Int (Mono_Sample);
    function Int16_To_Sample is new Utils.Int_To_Sample (Mono_Sample);

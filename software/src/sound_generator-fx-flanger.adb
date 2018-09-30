@@ -19,8 +19,6 @@
 --                                                                           --
 -------------------------------------------------------------------------------
 
-with HAL; use HAL;
-
 package body Sound_Generator is
 
    type Buffer_Index is mod 256;
@@ -87,7 +85,8 @@ package body Sound_Generator is
    -- On --
    --------
 
-   procedure On is
+   procedure On (Data : UInt8) is
+      pragma Unreferenced (Data);
    begin
       FX_On := True;
    end On;
@@ -96,7 +95,8 @@ package body Sound_Generator is
    -- Off --
    ---------
 
-   procedure Off is
+   procedure Off (Data : UInt8) is
+      pragma Unreferenced (Data);
    begin
       FX_On := False;
    end Off;

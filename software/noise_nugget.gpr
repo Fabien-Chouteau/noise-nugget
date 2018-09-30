@@ -8,11 +8,12 @@ project Noise_Nugget is
 
   package Naming is
     for Body ("Sound_Generator") use "sound_generator-" & Generator & ".adb";
+    for Body ("Main") use "main-" & Generator & ".adb";
   end Naming;
 
   for Runtime ("Ada") use STM32F407_Discovery_Full'Runtime ("Ada");
   for Target use "arm-eabi";
-  for Main use ("main.adb");
+  for Main use ("main-" & Generator & ".adb");
   for Languages use ("Ada");
 
   Src_Dirs := ("src/",

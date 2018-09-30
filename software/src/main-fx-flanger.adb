@@ -40,7 +40,7 @@ procedure Main is
    Fx_On : Boolean := False;
    Wait_Release : Boolean := False;
 begin
-   Sound_Generator.Off;
+   Sound_Generator.Off (0);
    WNM.Master_Volume.Set (100);
    loop
       WNM.Buttons.Scan;
@@ -56,10 +56,10 @@ begin
       end if;
 
       if Fx_On then
-         Sound_Generator.On;
+         Sound_Generator.On (0);
          WNM.LED.Turn_On;
       else
-         Sound_Generator.Off;
+         Sound_Generator.Off (0);
          WNM.LED.Turn_Off;
       end if;
 
