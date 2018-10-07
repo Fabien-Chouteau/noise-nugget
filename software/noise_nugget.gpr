@@ -2,9 +2,11 @@ with "Ada_Drivers_Library/boards/stm32f407_discovery/stm32f407_discovery_full.gp
 
 project Noise_Nugget is
 
-  type Generator_Type is ("fx-flanger", "synth");
-
+  type Generator_Type is ("fx-flanger", "synth", "sampler");
   Generator : Generator_Type := External("GENERATOR_TYPE", "synth");
+
+  type Sample_Type is ("cat", "guitar", "piano");
+  Sample : Sample_Type := External("SAMPLE_TYPE", "cat");
 
   package Naming is
     for Body ("Sound_Generator") use "sound_generator-" & Generator & ".adb";
@@ -14,7 +16,7 @@ project Noise_Nugget is
   for Runtime ("Ada") use STM32F407_Discovery_Full'Runtime ("Ada");
   for Target use "arm-eabi";
   for Main use ("main-" & Generator & ".adb");
-  for Languages use ("Ada");
+  for Languages use ("Ada", "asm_cpp");
 
   Src_Dirs := ("src/",
                "ada-synth-lib/src");
@@ -23,7 +25,18 @@ project Noise_Nugget is
   for Object_Dir use "obj/";
   for Create_Missing_Dirs use "True";
 
-  package Compiler renames STM32F407_Discovery_Full.Compiler;
+   package Compiler is
+      for Default_Switches ("ada") use STM32F407_Discovery_Full.Compiler'Default_Switches ("ada");
+
+      case Sample is
+         when "cat" =>
+            for Default_Switches ("asm_cpp") use ("-D_SAMPLE_CAT");
+         when "guitar" =>
+            for Default_Switches ("asm_cpp") use ("-D_SAMPLE_GUITAR");
+         when "piano" =>
+            for Default_Switches ("asm_cpp") use ("-D_SAMPLE_PIANO");
+      end case;
+   end Compiler;
 
   package Linker is
      for Default_Switches ("Ada") use
