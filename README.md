@@ -1,6 +1,8 @@
 # noise-nugget
 Square Inch music widget
 
+![](hardware/rev-B/front.jpg)
+
 Noise Nugget is a compact digital synthesizer based on an 180MHz Cortex-M4 and
 quality audio DAC with headphone amplifier.
 
